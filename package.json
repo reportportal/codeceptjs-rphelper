@@ -22,7 +22,7 @@
   "main": "index.js",
   "dependencies": {
     "reportportal-client": "5.5.0",
-    "codeceptjs": "^2.3.5"
+    "codeceptjs": "^2.5.0"
   },
   "devDependencies": {
     "eslint": "^6.6.0",
