@@ -1,10 +1,10 @@
 {
-  "name": "codeceptjs-rphelper",
+  "name": "@reportportal/agent-js-codecept",
   "version": "1.1.12",
-  "description": "Reportportal helper for Codecept JS tests",
+  "description": "Agent for integration CodeceptJS with ReportPortal.",
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/PeterNgTr/codeceptjs-rphelper.git"
+    "url": "git+ssh://git@github.com/reportportal/agent-js-codecept.git"
   },
   "keywords": [
     "codeceptJS",
@@ -14,11 +14,11 @@
     "codeceptjs-rphelper"
   ],
   "author": "Thanh Nguyen <peter.nguyentr@gmail.com>",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/PeterNgTr/codeceptjs-rphelper/issues"
+    "url": "https://github.com/reportportal/agent-js-codecept/issues"
   },
-  "homepage": "https://github.com/PeterNgTr/codeceptjs-rphelper#readme",
+  "homepage": "https://github.com/reportportal/agent-js-codecept#readme",
   "main": "index.js",
   "dependencies": {
     "reportportal-client": "5.5.0",
