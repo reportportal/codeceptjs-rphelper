@@ -2,6 +2,7 @@ const RPClient = require('reportportal-client');
 const fs = require('fs');
 const path = require('path');
 const util = require('util');
+const debug = require('debug')('codeceptjs:reportportal');
 const { event, recorder, output, container: Container } = codeceptjs;
 // output.level(3);
 const helpers = Container.helpers();
@@ -44,8 +45,6 @@ const defaultConfig = {
 module.exports = (config) => {
   config = Object.assign(defaultConfig, config);
 
-  console.log('Staaarting!!!11');
-
   let launchObj;
   let suiteObj;
   let testObj;
@@ -61,13 +60,13 @@ module.exports = (config) => {
 
   event.dispatcher.on(event.all.before, () => {
     launchObj = startLaunch();
-    console.log(`${launchObj.tempId}: The launchId is started.`);
+    debug(`${launchObj.tempId}: The launchId is started.`);
   });
 
   event.dispatcher.on(event.suite.before, (suite) => {
     recorder.add(async () => {
-      suiteObj = await startTestItem(suite.title, 'SUITE');
-      console.log(`${suiteObj.tempId}: The suiteId is started.`);
+      suiteObj = startTestItem(suite.title, 'SUITE');
+      debug(`${suiteObj.tempId}: The suiteId is started.`);
       suite.tempId = suiteObj.tempId;
       suiteStatus = 'PASSED';
     });
@@ -77,8 +76,9 @@ module.exports = (config) => {
     recorder.add(async () => {
       currentMetaSteps = [];
       stepObj = null;
-      testObj = await startTestItem(test.title, 'TEST', suiteObj.tempId);
+      testObj = startTestItem(test.title, 'TEST', suiteObj.tempId);
       test.tempId = testObj.tempId;
+      debug(`${testObj.tempId}: The testId is started.`);
     })
   });
 
@@ -87,7 +87,7 @@ module.exports = (config) => {
       await startMetaSteps(step);
       // const parent = currentMetaSteps.length ? currentMetaSteps[currentMetaSteps.length-1] : testObj;  
       // stepObj = startTestItem(step.toString(), 'STEP', parent.tempId);
-      // console.log(`${stepObj.tempId}: The stepId is started.`);
+      // debug(`${stepObj.tempId}: The stepId is started.`);
     })
   });
 
@@ -113,6 +113,7 @@ module.exports = (config) => {
     launchStatus = 'FAILED';
     suiteStatus = 'FAILED';
 
+    debug(`${test.tempId}: Test failed.`);
     rpClient.finishTestItem(test.tempId, {
       endTime: test.endTime || rpClient.helpers.now(),
       status: rp_FAILED,
@@ -120,6 +121,7 @@ module.exports = (config) => {
   });
 
   event.dispatcher.on(event.test.passed, (test, err) => {
+    debug(`${test.tempId}: Test passed.`);
     rpClient.finishTestItem(test.tempId, {
       endTime: test.endTime || rpClient.helpers.now(),
       status: rp_PASSED,
@@ -134,6 +136,7 @@ module.exports = (config) => {
 
   event.dispatcher.on(event.suite.after, (suite) => {
     recorder.add(async () => {
+      debug(`${suite.tempId}: Suite finished ${suiteStatus}.`);
       return rpClient.finishTestItem(suite.tempId, {
         endTime: suite.endTime || rpClient.helpers.now(),
         status: rpStatus(suiteStatus)
@@ -157,11 +160,11 @@ module.exports = (config) => {
 
   function startTestItem(testTitle, method, parentId = null) {
     try {
-      console.log('Starting ', testTitle);
+      const hasStats = method !== 'STEP';
       return rpClient.startTestItem({
         name: testTitle,
         type: method,
-        hasStats: false,
+        hasStats,
       }, launchObj.tempId, parentId);
     } catch (error) {
       output.err(error);
@@ -174,7 +177,7 @@ module.exports = (config) => {
 
   // event.dispatcher.on(event.step.passed, (step) => {
   //   _updateStep(stepObj, step, 'PASSED');
-  //   console.log(`${stepObj.tempId}: The passed stepId is updated.`);
+  //   debug(`${stepObj.tempId}: The passed stepId is updated.`);
   // });
 
 
@@ -200,7 +203,7 @@ module.exports = (config) => {
   //     status: rpStatus(test.status),
   //   });    
   //   // _updateStep(stepObj, this.step, 'FAILED');
-  //   console.log(`${stepObj.tempId}: The failed stepId is updated.`);
+  //   debug(`${stepObj.tempId}: The failed stepId is updated.`);
   // });
 
   // event.dispatcher.on(event.test.finished, (test) => {
@@ -208,7 +211,20 @@ module.exports = (config) => {
   // });
 
   event.dispatcher.on(event.all.result, () => {
-    finishLaunch();
+    recorder.add(async () => {
+      await suiteObj.promise;
+      await rpClient.finishTestItem(suiteObj.tempId, {
+        status: suiteStatus,
+      }).promise;
+      finishLaunch();
+    });
+      // suiteObj.promise.then(() => {
+      //   rpClient.finishTestItem(suiteObj.tempId, {
+      //     status: 'PASSED',
+      //   });
+      // });
+
+
   });
 
   function startLaunch(suiteTitle) {
@@ -252,7 +268,7 @@ module.exports = (config) => {
   //             });
   
   //             fs.unlinkSync(path.join(global.output_dir, fileName));
-  //             console.log('Screenshot is attached to failed step');
+  //             debug('Screenshot is attached to failed step');
   //           } catch (error) {
   //             output.error(error);
   //           }
@@ -293,11 +309,12 @@ module.exports = (config) => {
 
   function finishLaunch() {
     try {
-      rpClient.finishLaunch(launchObj.tempId, {
+      debug(`${launchObj.tempId} Finished launch: ${launchStatus}`)
+      return rpClient.finishLaunch(launchObj.tempId, {
         status: launchStatus,
       });
     } catch (error) {
-      console.log(error);
+      debug(error);
     }
 
   }
@@ -318,6 +335,7 @@ module.exports = (config) => {
       }
       metaStepObj = startTestItem(metaStep.toString(), rp_STEP, metaStepObj.tempId || testObj.tempId);
       metaStep.tempId = metaStepObj.tempId;
+      debug(`${metaStep.tempId}: The stepId is started.`);
     }
 
     currentMetaSteps = metaSteps;
