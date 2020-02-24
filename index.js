@@ -2,12 +2,16 @@ const RPClient = require('reportportal-client');
 const fs = require('fs');
 const path = require('path');
 const util = require('util');
-const event = require('codeceptjs').event;
-const Container = require('codeceptjs').container;
-const output = require('codeceptjs').output;
-output.level(3);
+const { event, recorder, output, container: Container } = codeceptjs;
+// output.level(3);
 const helpers = Container.helpers();
 let helper;
+
+const rp_FAILED = 'FAILED';
+const rp_PASSED = 'PASSED';
+const rp_SUITE = 'SUITE';
+const rp_TEST = 'TEST';
+const rp_STEP = 'STEP';
 
 const supportedHelpers = [
   'Mochawesome',
@@ -40,6 +44,8 @@ const defaultConfig = {
 module.exports = (config) => {
   config = Object.assign(defaultConfig, config);
 
+  console.log('Staaarting!!!11');
+
   let launchObj;
   let suiteObj;
   let testObj;
@@ -48,79 +54,164 @@ module.exports = (config) => {
   let stepObj;
   let rpClient;
   let logFile;
-  let beforeSuiteStatus = 'FAILED';
+  let suiteStatus = 'PASSED';
   let launchStatus = 'PASSED';
+  let currentMetaSteps = [];
+
 
   event.dispatcher.on(event.all.before, () => {
-    launchObj = _startLaunch();
-    output.log(`${launchObj.tempId}: The launchId is started.`);
+    launchObj = startLaunch();
+    console.log(`${launchObj.tempId}: The launchId is started.`);
   });
 
   event.dispatcher.on(event.suite.before, (suite) => {
-    suiteObj = _startTestItem(launchObj, suite.title, 'SUITE');
-    output.log(`${suiteObj.tempId}: The suiteId is started.`);
-    beforeSuiteStatus = 'PASSED';
-  });
-
-  event.dispatcher.on(event.all.result, () => {
-    if (stepInfo) {
-      rpClient.finishTestItem(suiteObj.tempId, {
-        endTime: stepInfo.endTime,
-        status: beforeSuiteStatus,
-      });
-    } else {
-      rpClient.finishTestItem(suiteObj.tempId, {
-        status: 'PASSED',
-      });
-    }
+    recorder.add(async () => {
+      suiteObj = await startTestItem(suite.title, 'SUITE');
+      console.log(`${suiteObj.tempId}: The suiteId is started.`);
+      suite.tempId = suiteObj.tempId;
+      suiteStatus = 'PASSED';
+    });
   });
 
   event.dispatcher.on(event.test.before, (test) => {
-    testObj = _startTestItem(launchObj, test.title, 'TEST', suiteObj.tempId);
-    output.log(`${testObj.tempId}: The testId is started.`);
+    recorder.add(async () => {
+      currentMetaSteps = [];
+      stepObj = null;
+      testObj = await startTestItem(test.title, 'TEST', suiteObj.tempId);
+      test.tempId = testObj.tempId;
+    })
   });
 
-  event.dispatcher.on(event.step.started, (step) => {
-    stepObj = _startTestItem(launchObj, step.toString(), 'STEP', testObj.tempId);
-    output.log(`${stepObj.tempId}: The stepId is started.`);
+  event.dispatcher.on(event.step.before, (step) => {
+    recorder.add(async () => {      
+      await startMetaSteps(step);
+      // const parent = currentMetaSteps.length ? currentMetaSteps[currentMetaSteps.length-1] : testObj;  
+      // stepObj = startTestItem(step.toString(), 'STEP', parent.tempId);
+      // console.log(`${stepObj.tempId}: The stepId is started.`);
+    })
   });
 
-  event.dispatcher.on(event.step.passed, (step) => {
-    _updateStep(stepObj, step, 'PASSED');
-    output.log(`${stepObj.tempId}: The passed stepId is updated.`);
+  event.dispatcher.on(event.step.after, (step) => {
+    recorder.add(() => finishStep(step));
   });
 
   event.dispatcher.on(event.step.failed, (step, err) => {
-    this.step = step;
-    launchStatus = 'FAILED';
+    step.err = err;
+    for (const metaStep of currentMetaSteps) {
+      metaStep.status = 'failed';
+    }
   });
 
-  event.dispatcher.on(event.step.finished, (step) => {
-    _finishTestItem(launchObj, stepObj, undefined, step.status);
-  });
-
-  event.dispatcher.on(event.test.passed, (test) => {
-    launchStatus = 'PASSED';
-    _updateStep(stepObj, null, 'PASSED');
+  event.dispatcher.on(event.step.passed, (step, err) => {
+    for (const metaStep of currentMetaSteps) {
+      metaStep.status = 'passed';
+    }
   });
 
 
   event.dispatcher.on(event.test.failed, (test, err) => {
     launchStatus = 'FAILED';
-    this.step.err = err;
-    _updateStep(stepObj, this.step, 'FAILED');
-    output.log(`${stepObj.tempId}: The failed stepId is updated.`);
+    suiteStatus = 'FAILED';
+
+    rpClient.finishTestItem(test.tempId, {
+      endTime: test.endTime || rpClient.helpers.now(),
+      status: rp_FAILED,
+    });    
   });
 
-  event.dispatcher.on(event.test.finished, (test) => {
-    _finishTestItem(launchObj, testObj, undefined, test.state);
+  event.dispatcher.on(event.test.passed, (test, err) => {
+    rpClient.finishTestItem(test.tempId, {
+      endTime: test.endTime || rpClient.helpers.now(),
+      status: rp_PASSED,
+    });    
   });
+
+  event.dispatcher.on(event.test.after, (test) => {
+    recorder.add(async () => {
+      await Promise.all(currentMetaSteps.map(m => finishStep(m)));
+    });
+  });
+
+  event.dispatcher.on(event.suite.after, (suite) => {
+    recorder.add(async () => {
+      return rpClient.finishTestItem(suite.tempId, {
+        endTime: suite.endTime || rpClient.helpers.now(),
+        status: rpStatus(suiteStatus)
+      });
+    });
+  });  
+
+  // event.dispatcher.on(event.all.result, () => {
+  //   if (stepInfo) {
+  //     rpClient.finishTestItem(suiteObj.tempId, {
+  //       endTime: stepInfo.endTime,
+  //       status: suiteStatus,
+  //     });
+  //   } else {
+  //     rpClient.finishTestItem(suiteObj.tempId, {
+  //       status: 'PASSED',
+  //     });
+  //   }
+  // });
+
+
+  function startTestItem(testTitle, method, parentId = null) {
+    try {
+      console.log('Starting ', testTitle);
+      return rpClient.startTestItem({
+        name: testTitle,
+        type: method,
+        hasStats: false,
+      }, launchObj.tempId, parentId);
+    } catch (error) {
+      output.err(error);
+    }
+
+  }
+
+
+  // close items
+
+  // event.dispatcher.on(event.step.passed, (step) => {
+  //   _updateStep(stepObj, step, 'PASSED');
+  //   console.log(`${stepObj.tempId}: The passed stepId is updated.`);
+  // });
+
+
+
+  // event.dispatcher.on(event.step.finished, (step) => {
+  //   _finishTestItem(launchObj, stepObj, undefined, step.status);
+  // });
+
+  // event.dispatcher.on(event.test.passed, (test) => {
+  //   launchStatus = 'PASSED';
+  //   _updateStep(stepObj, null, 'PASSED');
+  // });
+
+
+
+
+  // event.dispatcher.on(event.test.failed, (test, err) => {
+  //   launchStatus = 'FAILED';
+  //   this.step.err = err;
+
+  //   return rpClient.finishTestItem(test.tempId, {
+  //     endTime: step.endTime || rpClient.helpers.now(),
+  //     status: rpStatus(test.status),
+  //   });    
+  //   // _updateStep(stepObj, this.step, 'FAILED');
+  //   console.log(`${stepObj.tempId}: The failed stepId is updated.`);
+  // });
+
+  // event.dispatcher.on(event.test.finished, (test) => {
+  //   finishTestItem(launchObj, testObj, undefined, test.state);
+  // });
 
   event.dispatcher.on(event.all.result, () => {
-    _finishLaunch(launchObj);
+    finishLaunch();
   });
 
-  function _startLaunch(suiteTitle) {
+  function startLaunch(suiteTitle) {
     rpClient = new RPClient({
       token: config.token,
       endpoint: config.endpoint,
@@ -137,95 +228,136 @@ module.exports = (config) => {
     });
   }
 
-  function _startTestItem(launchObj, testTitle, method, suiteId = null) {
+
+  // function _finishTestItem(launchObj, itemObject, step, status) {
+  //   if (status === 'success') {
+  //     status = 'PASSED'
+  //   };
+
+  //   if (step) {
+  //     if (status === 'FAILED') {
+  //       if (helper) {
+  //         fileName = `${rpClient.helpers.now()}_failed.png`;
+  //         logFile = `${rpClient.helpers.now()}_browser.logs.txt`;
+  //         helper.saveScreenshot(fileName).then(() => {
+  //           try {
+  //             rpClient.sendLog(itemObject.tempId, {
+  //               level: 'error',
+  //               message: `[FAILED STEP] ${step.toString()} due to ${step.err}`,
+  //               time: step.startTime,
+  //             }, {
+  //               name: fileName,
+  //               type: 'image/png',
+  //               content: fs.readFileSync(path.join(global.output_dir, fileName)),
+  //             });
+  
+  //             fs.unlinkSync(path.join(global.output_dir, fileName));
+  //             console.log('Screenshot is attached to failed step');
+  //           } catch (error) {
+  //             output.error(error);
+  //           }
+
+  //           helper.grabBrowserLogs().then((browserLogs) => {
+  //             fs.writeFileSync(path.join(global.output_dir, logFile), util.inspect(browserLogs));
+  
+  //             rpClient.sendLog(itemObject.tempId, {
+  //               level: 'trace',
+  //               message: `[BROWSER LOGS FOR FAILED STEP] ${step.toString()} due to ${step.err}`,
+  //               time: step.startTime,
+  //             }, {
+  //               name: logFile,
+  //               type: 'text/plain',
+  //               content: fs.readFileSync(path.join(global.output_dir, logFile)),
+  //             });
+  
+  //             fs.unlinkSync(path.join(global.output_dir, logFile));
+  //           });
+  //         });
+  //       }
+  //     }
+
+  //     rpClient.finishTestItem(itemObject.tempId, {
+  //       endTime: step.endTime || rpClient.helpers.now(),
+  //       status,
+  //     });
+  //   } else {
+  //     try {
+  //       rpClient.finishTestItem(itemObject.tempId, {
+  //         status,
+  //       });
+  //     } catch (error) {
+  //       output.err(error);
+  //     }
+  //   }
+  // }
+
+  function finishLaunch() {
     try {
-      return rpClient.startTestItem({
-        description: testTitle,
-        name: testTitle,
-        type: method,
-      }, launchObj.tempId, suiteId);
-    } catch (error) {
-      output.err(error);
-    }
-
-  }
-
-  function _finishTestItem(launchObj, itemObject, step, status) {
-    if (status === 'success') {
-      status = 'PASSED'
-    };
-
-    if (step) {
-      if (status === 'FAILED') {
-        if (helper) {
-          fileName = `${rpClient.helpers.now()}_failed.png`;
-          logFile = `${rpClient.helpers.now()}_browser.logs.txt`;
-          helper.saveScreenshot(fileName).then(() => {
-            try {
-              rpClient.sendLog(itemObject.tempId, {
-                level: 'error',
-                message: `[FAILED STEP] ${step.toString()} due to ${step.err}`,
-                time: step.startTime,
-              }, {
-                name: fileName,
-                type: 'image/png',
-                content: fs.readFileSync(path.join(global.output_dir, fileName)),
-              });
-  
-              fs.unlinkSync(path.join(global.output_dir, fileName));
-              output.log('Screenshot is attached to failed step');
-            } catch (error) {
-              output.error(error);
-            }
-
-            helper.grabBrowserLogs().then((browserLogs) => {
-              fs.writeFileSync(path.join(global.output_dir, logFile), util.inspect(browserLogs));
-  
-              rpClient.sendLog(itemObject.tempId, {
-                level: 'trace',
-                message: `[BROWSER LOGS FOR FAILED STEP] ${step.toString()} due to ${step.err}`,
-                time: step.startTime,
-              }, {
-                name: logFile,
-                type: 'text/plain',
-                content: fs.readFileSync(path.join(global.output_dir, logFile)),
-              });
-  
-              fs.unlinkSync(path.join(global.output_dir, logFile));
-            });
-          });
-        }
-      }
-
-      rpClient.finishTestItem(itemObject.tempId, {
-        endTime: step.endTime || rpClient.helpers.now(),
-        status,
-      });
-    } else {
-      try {
-        rpClient.finishTestItem(itemObject.tempId, {
-          status,
-        });
-      } catch (error) {
-        output.err(error);
-      }
-    }
-  }
-
-  function _finishLaunch(launchObject) {
-    try {
-      rpClient.finishLaunch(launchObject.tempId, {
+      rpClient.finishLaunch(launchObj.tempId, {
         status: launchStatus,
       });
     } catch (error) {
-      output.err(error);
+      console.log(error);
     }
 
   }
 
-  function _updateStep(stepObj, step, status) {
-    _finishTestItem(launchObj, stepObj, step, status);
+  async function startMetaSteps(step) {
+    let metaStepObj = {};
+    const metaSteps = metaStepsToArray(step);
+
+    for (const i in metaSteps) {
+      const metaStep = metaSteps[i];
+      if (isEqualMetaStep(metaStep, currentMetaSteps[i])) {
+        continue;
+      } 
+      // close current metasteps
+      for (let j = i; j < currentMetaSteps.length; j++) {
+        await finishStep(currentMetaSteps[j]);
+        delete currentMetaSteps[j];
+      }
+      metaStepObj = startTestItem(metaStep.toString(), rp_STEP, metaStepObj.tempId || testObj.tempId);
+      metaStep.tempId = metaStepObj.tempId;
+    }
+
+    currentMetaSteps = metaSteps;
   }
+
+  function finishStep(step) {
+    if (!step) return;
+    return rpClient.finishTestItem(step.tempId, {
+      endTime: step.endTime || rpClient.helpers.now(),
+      status: rpStatus(step.status),
+    });
+  }
+
 
   return this;
 };
+
+function metaStepsToArray(step) {
+  let metaSteps = [];
+  iterateMetaSteps(step, metaStep => metaSteps.push(metaStep));
+  return metaSteps;
+}
+
+function iterateMetaSteps(step, fn) {
+  if (step.metaStep) iterateMetaSteps(step.metaStep, fn);
+  if (step) fn(step);
+}
+
+
+const isEqualMetaStep = (metastep1, metastep2) => {
+  if (!metastep1 && !metastep2) return true;
+  if (!metastep1 || !metastep2) return false;
+  return metastep1.actor === metastep2.actor 
+    && metastep1.name === metastep2.name 
+    && metastep1.args.join(',') === metastep2.args.join(',');
+};
+
+
+function rpStatus(status) {
+  if (status === 'success') return rp_PASSED;
+  if (status === 'failed') return rp_FAILED;
+  return status;
+}
