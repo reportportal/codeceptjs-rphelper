@@ -117,3 +117,11 @@ All the feature tests are now combine in a single launch
 ## Notes
 
 Right now, when running with `codeceptjs run`, all tests will be added under a launch. However, if you run with `codeceptjs run-workers no_of_workers`, there will be multiple launches that match `no_of_workers` and all tests will be added under any random launch. One thing you could try right now is trying to use `codeceptjs run-workers --suites no_of_workers`, by that, you won't get the messy results on `reportportal`.
+
+## Debugging Plugin
+
+To debug this plugin run script enabing DEBUG env variable:
+
+```
+DEBUG="codeceptjs:reportportal"  npx codeceptjs run
+```
