@@ -66,7 +66,7 @@ module.exports = (config) => {
   event.dispatcher.on(event.suite.before, (suite) => {
     recorder.add(async () => {
       suiteObj = startTestItem(suite.title, 'SUITE');
-      debug(`${suiteObj.tempId}: The suiteId is started.`);
+      debug(`${suiteObj.tempId}: The suiteId '${suite.title}' is started.`);
       suite.tempId = suiteObj.tempId;
       suiteStatus = 'PASSED';
     });
@@ -78,7 +78,7 @@ module.exports = (config) => {
       stepObj = null;
       testObj = startTestItem(test.title, 'TEST', suiteObj.tempId);
       test.tempId = testObj.tempId;
-      debug(`${testObj.tempId}: The testId is started.`);
+      debug(`${testObj.tempId}: The testId '${test.title}' is started.`);
     })
   });
 
@@ -113,7 +113,7 @@ module.exports = (config) => {
     launchStatus = 'FAILED';
     suiteStatus = 'FAILED';
 
-    debug(`${test.tempId}: Test failed.`);
+    debug(`${test.tempId}: Test '${test.title}' failed.`);
     rpClient.finishTestItem(test.tempId, {
       endTime: test.endTime || rpClient.helpers.now(),
       status: rp_FAILED,
@@ -121,7 +121,7 @@ module.exports = (config) => {
   });
 
   event.dispatcher.on(event.test.passed, (test, err) => {
-    debug(`${test.tempId}: Test passed.`);
+    debug(`${test.tempId}: Test '${test.title}' passed.`);
     rpClient.finishTestItem(test.tempId, {
       endTime: test.endTime || rpClient.helpers.now(),
       status: rp_PASSED,
@@ -136,7 +136,7 @@ module.exports = (config) => {
 
   event.dispatcher.on(event.suite.after, (suite) => {
     recorder.add(async () => {
-      debug(`${suite.tempId}: Suite finished ${suiteStatus}.`);
+      debug(`${suite.tempId}: Suite '${suite.title}' finished ${suiteStatus}.`);
       return rpClient.finishTestItem(suite.tempId, {
         endTime: suite.endTime || rpClient.helpers.now(),
         status: rpStatus(suiteStatus)
@@ -335,7 +335,7 @@ module.exports = (config) => {
       }
       metaStepObj = startTestItem(metaStep.toString(), rp_STEP, metaStepObj.tempId || testObj.tempId);
       metaStep.tempId = metaStepObj.tempId;
-      debug(`${metaStep.tempId}: The stepId is started.`);
+      debug(`${metaStep.tempId}: The stepId '${step.title}' is started.`);
     }
 
     currentMetaSteps = metaSteps;
@@ -343,6 +343,7 @@ module.exports = (config) => {
 
   function finishStep(step) {
     if (!step) return;
+
     return rpClient.finishTestItem(step.tempId, {
       endTime: step.endTime || rpClient.helpers.now(),
       status: rpStatus(step.status),
