@@ -4,17 +4,17 @@
 
 This helpes you integrate the test results of CodeceptJS with ReportPortal
 
-codeceptjs-rphelper is a [CodeceptJS](https://codecept.io/) helper which can publish tests results on [ReportPortal](https://reportportal.io/) after execution.
+`@reportportal/agent-js-codecept` is a [CodeceptJS](https://codecept.io/) plugin which can publish tests results on [ReportPortal](https://reportportal.io/) after execution.
 
 ## Installation
 
 ```sh
-npm i codeceptjs-rphelper --save
+npm i @reportportal/agent-js-codecept --save
 ```
 
 ## Configuration
 
-This plugin should be added in `codecept.json/codecept.conf.js`
+This plugin should be added in `codecept.conf.js`
 
 Example:
 
@@ -23,7 +23,7 @@ Example:
   ...
    plugins: {
     reportportal: {
-      require: '@codecept-js/reportportal-plugin',
+      require: '@reportportal/agent-js-codecept',
       token: 'YOUR_TOKEN',
       endpoint: 'http://localhost:8080/api/v1',
       launchName: 'This is awesome',
