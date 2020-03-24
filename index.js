@@ -2,6 +2,7 @@ const RPClient = require('reportportal-client');
 const fs = require('fs');
 const path = require('path');
 const debug = require('debug')('codeceptjs:reportportal');
+const { isMainThread } = require('worker_threads');
 const { event, recorder, output, container } = codeceptjs;
 
 const helpers = container.helpers();
@@ -53,18 +54,27 @@ module.exports = (config) => {
   let launchStatus = rp_PASSED;
   let currentMetaSteps = [];
 
+  // only for codeceptjs 3.0+
+  event.dispatcher.on(event.workers.before, () => {
+    recorder.startUnlessRunning();
+    recorder.add(async () => {
+      launchObj = startLaunch();
+      const { id } = await launchObj.promise;
+      process.env.RP_LAUNCH_ID = id;
+      debug(`Setting env variable ${process.env.RP_LAUNCH_ID}`);
+      output.debug(`Starting ReportPortal aggregate launch: ${id}`);
+    });
+    isControlThread = true;
+  });
 
   event.dispatcher.on(event.all.before, () => {
-    launchObj = startLaunch();
-    launchObj.promise.catch(err => {
-      output.error('Can`\t connect to ReportPortal');
-      output.error(err);
-    });
-    output.print('Logging results to ReportPortal');
-    debug(`${launchObj.tempId}: The launchId is started.`);
+    recorder.add('launch report portal', async () => {
+      launchObj = startLaunch();
+    })
   });
 
   event.dispatcher.on(event.suite.before, (suite) => {
+    if (isControlThread) return;
     recorder.add(async () => {
       suiteObj = startTestItem(suite.title, rp_SUITE);
       debug(`${suiteObj.tempId}: The suiteId '${suite.title}' is started.`);
@@ -111,6 +121,7 @@ module.exports = (config) => {
   });
 
   event.dispatcher.on(event.test.failed, async (test, err) => {
+    if (isControlThread) return;
     launchStatus = rp_FAILED;
     suiteStatus = rp_FAILED;
 
@@ -136,6 +147,7 @@ module.exports = (config) => {
   });
 
   event.dispatcher.on(event.test.passed, (test, err) => {
+    if (isControlThread) return;
     debug(`${test.tempId}: Test '${test.title}' passed.`);
     rpClient.finishTestItem(test.tempId, {
       endTime: test.endTime || rpClient.helpers.now(),
@@ -144,6 +156,7 @@ module.exports = (config) => {
   });
 
   event.dispatcher.on(event.test.after, (test) => {
+    if (isControlThread) return;
     recorder.add(async () => {
       debug(`closing ${currentMetaSteps.length} metasteps for failed test`);
       if (failedStep) await finishStep(failedStep);
@@ -152,6 +165,7 @@ module.exports = (config) => {
   });
 
   event.dispatcher.on(event.suite.after, (suite) => {
+    if (isControlThread) return;
     recorder.add(async () => {
       debug(`${suite.tempId}: Suite '${suite.title}' finished ${suiteStatus}.`);
       return rpClient.finishTestItem(suite.tempId, {
@@ -172,16 +186,16 @@ module.exports = (config) => {
     } catch (error) {
       output.err(error);
     }
-
   }
 
   event.dispatcher.on(event.all.result, () => {
     recorder.add(async () => {
-      // await suiteObj.promise;
-      await rpClient.finishTestItem(suiteObj.tempId, {
+      // close outstanding items
+      if (!isControlThread) await rpClient.finishTestItem(suiteObj.tempId, {
         status: suiteStatus,
       }).promise;
-      finishLaunch();
+      // stop launch when we are in main thread (control or normal)
+      if (isMainThread) finishLaunch();
     });
   });
 
@@ -193,12 +207,33 @@ module.exports = (config) => {
       debug: config.debug,
     });
 
-    return rpClient.startLaunch({
+    const launchOpts = {
       name: config.launchName || suiteTitle,
       description: config.launchDescription,
       attributes: config.launchAttributes,
       rerun: config.rerun,
       rerunOf: config.rerunOf,
+    };
+
+    if (process.env.RP_LAUNCH_ID) {
+      launchOpts.id = process.env.RP_LAUNCH_ID;
+    }
+
+    const launch = rpClient.startLaunch(launchOpts);
+
+    launch.promise.catch(err => {
+      output.error('Can`\t connect to ReportPortal');
+      output.error(err);
+    });
+    output.print('Logging results to ReportPortal');
+    debug(`${launch.tempId}: The launchId is started.`);
+
+    return launch.promise.then((response) => {
+      if (isControlThread) { 
+        process.env.RP_LAUNCH_ID = response.id;
+        debug('setting launch id to RP_LAUNCH_ID for parallel run');
+      }
+      return response;
     });
   }
 
