@@ -66,7 +66,7 @@ module.exports = (config) => {
   let currentMetaSteps = [];
 
 
-  event.dispatcher.on(event.all.before, () => {
+  event.dispatcher.on(event.all.before, async () => {
     launchObj = startLaunch();
     try {
       await launchObj.promise;
