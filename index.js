@@ -352,7 +352,7 @@ function metaStepsToArray(step) {
 }
 
 function iterateMetaSteps(step, fn) {
-  if (step.metaStep) iterateMetaSteps(step.metaStep, fn);
+  if (step && step.metaStep) iterateMetaSteps(step.metaStep, fn);
   if (step) fn(step);
 }
 
