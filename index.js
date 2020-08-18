@@ -41,7 +41,7 @@ const defaultConfig = {
   enabled: false
 };
 
-const requiredFields = ['projectName', 'token', 'endpoint', 'projectName'];
+const requiredFields = ['projectName', 'token', 'endpoint'];
 
 
 module.exports = (config) => {
