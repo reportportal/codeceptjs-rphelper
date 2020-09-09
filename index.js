@@ -1,4 +1,4 @@
-const RPClient = require('reportportal-client');
+const RPClient = require('@reportportal/client-javascript');
 const fs = require('fs');
 const path = require('path');
 const debug = require('debug')('codeceptjs:reportportal');
