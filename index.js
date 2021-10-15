@@ -233,7 +233,7 @@ module.exports = (config) => {
         status: suiteStatus,
       }).promise;
     }
-    await finishLaunch();
+    if (!process.env.RP_LAUNCH_ID) await finishLaunch();
   });
 
   function startLaunch(suiteTitle) {
@@ -244,13 +244,19 @@ module.exports = (config) => {
       debug: config.debug,
     });
 
-    return rpClient.startLaunch({
+    const options = {
       name: config.launchName || suiteTitle,
       description: config.launchDescription,
       attributes: config.launchAttributes,
       rerun: config.rerun,
       rerunOf: config.rerunOf,
-    });
+    }
+
+    if (process.env.RP_LAUNCH_ID) { 
+      options.id = process.env.RP_LAUNCH_ID
+    }
+
+    return rpClient.startLaunch(options);
   }
 
   async function attachScreenshot() {
