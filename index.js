@@ -137,7 +137,7 @@ module.exports = (config) => {
 
   event.dispatcher.on(event.suite.before, (suite) => {
     recorder.add(async () => {
-      suiteObj = startTestItem(suite.title, rp_SUITE);
+      suiteObj = startTestItem(suite.title, rp_TEST);
       debug(`${suiteObj.tempId}: The suiteId '${suite.title}' is started.`);
       suite.tempId = suiteObj.tempId;
       suiteStatus = rp_PASSED;
@@ -148,7 +148,7 @@ module.exports = (config) => {
     recorder.add(async () => {
       currentMetaSteps = [];
       stepObj = null;
-      testObj = startTestItem(test.title, rp_TEST, suiteObj.tempId);
+      testObj = startTestItem(test.title, rp_STEP, suiteObj.tempId);
       test.tempId = testObj.tempId;
       failedStep = null;
       debug(`${testObj.tempId}: The testId '${test.title}' is started.`);
@@ -246,9 +246,9 @@ module.exports = (config) => {
     });
   });
 
-  function startTestItem(testTitle, method, parentId = null) {
+  function startTestItem(testTitle, method, parentId = null, stats = null) {
     try {
-      const hasStats = method !== rp_STEP;
+      const hasStats = stats || method !== rp_STEP;
       return rpClient.startTestItem({
         name: testTitle,
         type: method,
@@ -353,7 +353,7 @@ module.exports = (config) => {
       metaStepObj = currentMetaSteps[i - 1] || metaStepObj;
 
       const isNested = !!metaStepObj.tempId;
-      metaStepObj = startTestItem(metaStep.toString(), rp_STEP, metaStepObj.tempId || testObj.tempId);
+      metaStepObj = startTestItem(metaStep.toString(), rp_STEP, metaStepObj.tempId || testObj.tempId, false);
       metaStep.tempId = metaStepObj.tempId;
       debug(`${metaStep.tempId}: The stepId '${metaStep.toString()}' is started. Nested: ${isNested}`);
     }
