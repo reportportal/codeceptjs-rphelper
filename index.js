@@ -148,7 +148,7 @@ module.exports = (config) => {
     recorder.add(async () => {
       currentMetaSteps = [];
       stepObj = null;
-      testObj = startTestItem(test.title, rp_STEP, suiteObj.tempId);
+      testObj = startTestItem(test.title, rp_STEP, suiteObj.tempId, true);
       test.tempId = testObj.tempId;
       failedStep = null;
       debug(`${testObj.tempId}: The testId '${test.title}' is started.`);
