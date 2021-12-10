@@ -41,7 +41,7 @@ const defaultConfig = {
   token: '',
   endpoint: '',
   projectName: '',
-  launchName: 'codeceptjs tests',
+  launchName: '',
   launchDescription: '',
   attributes: [],
   debug: false,
