@@ -44,15 +44,15 @@ Example:
 
 To use this plugin you need to provide the following info:
 
-- `token`: which can be found by navigating to the user profile page, clicking the username drop-down in the right header and selecting the "Profile" > "UUID" – is a unique user identifier. UUID is used in automated test configuration files for a user authentication instead of a password. It will allow you to post data, without logging it in the UI.
-- `endpoint`: your reportportal host + `api/v1` for instance: `http://localhost:8080/api/v1`
-- `launchName`: the launch name you want, if not provided, the suite title will be used
-- `projectName`: the project that you created in the reportportal UI
-- `launchDescription`: (optional) the description of your launch, if not provided, the description will be empty
-- `launchAttributes`: (optional) the attributes of your launch, if not provided, the attributes will be empty
-- `debug`: (optional) to turn on the debug for reportportal
-- `rerun`: (optional) to enable [rerun](https://github.com/reportportal/documentation/blob/master/src/md/src/DevGuides/rerun.md)
-- `rerunOf`: (optional) UUID of launch you want to rerun. If not specified, report portal will update the latest launch with the same name.
+* `token`: which can be found by navigating to the user profile page, clicking the username drop-down in the right header and selecting the "Profile" > "UUID" – is a unique user identifier. UUID is used in automated test configuration files for a user authentication instead of a password. It will allow you to post data, without logging it in the UI.
+* `endpoint`: your reportportal host + `api/v1` for instance: `http://localhost:8080/api/v1`
+* `launchName`: the launch name you want, if not provided, the suite title will be used
+* `projectName`: the project that you created in the reportportal UI
+* `launchDescription`: (optional) the description of your launch, if not provided, the description will be empty
+* `launchAttributes`: (optional) the attributes of your launch, if not provided, the attributes will be empty
+* `debug`: (optional) to turn on the debug for reportportal
+* `rerun`: (optional) to enable [rerun](https://github.com/reportportal/documentation/blob/master/src/md/src/DevGuides/rerun.md)
+* `rerunOf`: (optional) UUID of launch you want to rerun. If not specified, report portal will update the latest launch with the same name.
 
 ## Public API
 
@@ -86,7 +86,7 @@ See [`sendLog` method of ReportPortal JavaScript Client](https://github.com/repo
 
 ### Get Report URL
 
-Once report is posted a special `reportportal.result` event is created. 
+Once report is posted a special `reportportal.result` event is created.
 
 You can use it to pass URL of a report into other plugins. For instance, you can use it to send Slack or Email notifications including a link to a report.
 
@@ -100,12 +100,12 @@ event.dispatcher.on('reportportal.result', (result) => {
 
 ## Todo
 
-- [ ] Support `run-workers` command to aggregate all tests under one launch.
+* [x] Support `run-workers` command to aggregate all tests under one launch.
 
 ## Debugging Plugin
 
 To debug this plugin run script enabing DEBUG env variable:
 
-```
+``` bash
 DEBUG="codeceptjs:reportportal"  npx codeceptjs run
 ```
