@@ -248,7 +248,7 @@ module.exports = (config) => {
 
   function startTestItem(testTitle, method, parentId = null, stats = null) {
     try {
-      const hasStats = stats || method !== rp_STEP;
+      const hasStats = stats || (method !== rp_STEP);
       return rpClient.startTestItem({
         name: testTitle,
         type: method,
