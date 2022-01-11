@@ -47,16 +47,20 @@ const defaultConfig = {
   debug: false,
   rerun: undefined,
   enabled: false,
-  selenoidVideoPath: false,
-  selenoidVideoUpload: './output/video'
+  selenoidVideoPath: './output/video',
+  selenoidVideoUpload: false
 };
 
 const requiredFields = ['projectName', 'token', 'endpoint'];
 
 module.exports = (config) => {
   config = Object.assign(defaultConfig, config);
-  let videoName = helper.config.desiredCapabilities['selenoid:options'].videoName
-  if (config.selenoidVideoUpload && !videoName) throw new Error(`No video name defined. Are the selenoid:options.videoName set?`)
+  let videoName = ''
+  if (config.selenoidVideoUpload) {
+    videoName = helper.config.desiredCapabilities['selenoid:options'].videoName
+    if (config.selenoidVideoUpload && !videoName) throw new Error(`No video name defined. Are the selenoid:options.videoName set?`)
+  }
+  
 
   
   const rpLaunchId = fs.existsSync(LAUCH_ID_FILE_NAME)
@@ -150,9 +154,6 @@ module.exports = (config) => {
 
   event.dispatcher.on(event.test.before, (test) => {
     recorder.add(async () => {
-      videoName = `${test.title.split(/(?<=^\S+)\s/)[0]}.mp4`
-      // Set video name for selenoid
-      helper.config.desiredCapabilities['selenoid:options'].videoName = videoName
       currentMetaSteps = [];
       stepObj = null;
       testObj = startTestItem(test.title, rp_STEP, suiteObj.tempId, true);
@@ -266,7 +267,7 @@ module.exports = (config) => {
 
   function startTestItem(testTitle, method, parentId = null, stats = null) {
     try {
-      const hasStats = stats || (method !== rp_STEP);
+      const hasStats = stats || method !== rp_STEP;
       return rpClient.startTestItem({
         name: testTitle,
         type: method,
