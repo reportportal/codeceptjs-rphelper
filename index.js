@@ -47,12 +47,16 @@ const defaultConfig = {
   debug: false,
   rerun: undefined,
   enabled: false,
+  selenoidVideoPath: false,
+  selenoidVideoUpload: './output/video'
 };
 
 const requiredFields = ['projectName', 'token', 'endpoint'];
 
 module.exports = (config) => {
   config = Object.assign(defaultConfig, config);
+  let videoName = helper.config.desiredCapabilities['selenoid:options'].videoName
+  if (config.selenoidVideoUpload && !videoName) throw new Error(`No video name defined. Are the selenoid:options.videoName set?`)
 
   
   const rpLaunchId = fs.existsSync(LAUCH_ID_FILE_NAME)
@@ -146,6 +150,9 @@ module.exports = (config) => {
 
   event.dispatcher.on(event.test.before, (test) => {
     recorder.add(async () => {
+      videoName = `${test.title.split(/(?<=^\S+)\s/)[0]}.mp4`
+      // Set video name for selenoid
+      helper.config.desiredCapabilities['selenoid:options'].videoName = videoName
       currentMetaSteps = [];
       stepObj = null;
       testObj = startTestItem(test.title, rp_STEP, suiteObj.tempId, true);
@@ -192,7 +199,7 @@ module.exports = (config) => {
 
       const screenshot = await attachScreenshot();
 
-      resp = await rpClient.sendLog(step.tempId, {
+      await rpClient.sendLog(step.tempId, {
         level: 'ERROR',
         message: `${err.stack}`,
         time: step.startTime,
@@ -210,6 +217,16 @@ module.exports = (config) => {
       }).promise;
     }
 
+    // Upload selenoid video if configured
+    if (config.selenoidVideoUpload) {
+      const video = await attachVideo()
+      await rpClient.sendLog(test.tempId, {
+          level: 'ERROR',
+          message: `Add Video for failed test`,
+          logTime: test.startTime,
+        }, video).promise;
+    }
+    
     rpClient.finishTestItem(test.tempId, {
       endTime: test.endTime || rpClient.helpers.now(),
       status: rp_FAILED,
@@ -228,6 +245,7 @@ module.exports = (config) => {
 
   event.dispatcher.on(event.test.after, (test) => {
     recorder.add(async () => {
+      
       debug(`closing ${currentMetaSteps.length} metasteps for failed test`);
       if (failedStep) await finishStep(failedStep);
       await Promise.all(currentMetaSteps.reverse().map((m) => finishStep(m)));
@@ -309,6 +327,16 @@ module.exports = (config) => {
       type: 'image/png',
       content,
     };
+  }
+
+  async function attachVideo() {
+    const content = fs.readFileSync(path.join(config.selenoidVideoPath, videoName));
+    fs.unlinkSync(path.join(config.selenoidVideoPath, videoName));
+    return {
+      name: 'TestVideo.mp4',
+      type: 'video/mp4',
+      content
+    }
   }
 
   async function finishLaunch() {

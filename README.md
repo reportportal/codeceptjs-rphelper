@@ -37,6 +37,8 @@ Example:
       token: 'YOUR_TOKEN',
       endpoint: 'http://localhost:8080/api/v1',
       launchName: 'local launch',
+      selenoidVideoUpload: true,
+      selenoidVideoPath: './output/video'
     }
   //...
 }
@@ -53,6 +55,29 @@ To use this plugin you need to provide the following info:
 * `debug`: (optional) to turn on the debug for reportportal
 * `rerun`: (optional) to enable [rerun](https://github.com/reportportal/documentation/blob/master/src/md/src/DevGuides/rerun.md)
 * `rerunOf`: (optional) UUID of launch you want to rerun. If not specified, report portal will update the latest launch with the same name.
+* `selenoidVideoUpload`: (optional) Indicates if selenoid video should be uploaded on failed tests. Default: false
+* `selenoidVideoPath`: (optional) Specifies where the selenoid videos are located. Default: `./output/video`
+
+### Selenoid Video Upload Feature
+
+#### Codeceptjs configuration
+
+To use the selenoid video upload feature you have to add the special capability `videoName` with a random id if you run your tests in parallel. The feature needs a per test identifier for the video. [Selenoid Special Capability](https://aerokube.com/selenoid/latest/#_video_recording_enablevideo_videoname_videoscreensize_videoframerate_videocodec)
+
+You have also to set the special capability `enableVideo` to `true`.
+
+Example:
+
+```javascript
+'selenoid:options': {
+            enableVideo: true, // Enable video for selenoid
+            videoName: `${uuidv4()}.mp4`, // Set video name with per test identifier if tests are run in parallel. 
+        },
+```
+
+#### Reporter configuration
+
+Set `selenoidVideoUpload` and `selenoidVideoPath` in the reportportal agent configuration.
 
 ## Public API
 
