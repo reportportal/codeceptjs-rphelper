@@ -111,9 +111,14 @@ module.exports = (config) => {
 
   event.dispatcher.on(event.test.before, (test) => {
     recorder.add(async () => {
+      if (test._retries > 0) {
+        if (test._currentRetry > 0) {
+          test.retriedTitle = test.title + ' [⟳' + test._currentRetry + ']'
+        }
+      }
       currentMetaSteps = [];
       stepObj = null;
-      testObj = startTestItem(test.title, rp_STEP, suiteObj.tempId, true);
+      testObj = startTestItem(test.retriedTitle || test.title, rp_STEP, suiteObj.tempId, true);
       test.tempId = testObj.tempId;
       failedStep = null;
       debug(`${testObj.tempId}: The testId '${test.title}' is started.`);
@@ -150,7 +155,14 @@ module.exports = (config) => {
     launchStatus = rp_FAILED;
     suiteStatus = rp_FAILED;
 
+    let retriedTempId;
+    if (test.ctx && test.ctx.test && test.ctx.test.retriedTitle && test.ctx.test._currentRetry > 0 ) {
+      debug(`Retried run of test`);
+      retriedTempId = test.ctx.test.tempId
+    }
+
     if (failedStep && failedStep.tempId) {
+
       const step = failedStep;
 
       debug(`Attaching screenshot & error to failed step`);
@@ -166,17 +178,18 @@ module.exports = (config) => {
     }
 
     if (!test.tempId) return;
+    const testTempId = retriedTempId ? retriedTempId : test.tempId
 
-    debug(`${test.tempId}: Test '${test.title}' failed.`);
+    debug(`${testTempId}: Test '${test.title}' failed.`);
 
     if (!failedStep) {
-      await rpClient.sendLog(test.tempId, {
+      await rpClient.sendLog(testTempId, {
         level: 'ERROR',
         message: `${err.stack}`,
       }).promise;      
     }
 
-    rpClient.finishTestItem(test.tempId, {
+    rpClient.finishTestItem(testTempId, {
       endTime: test.endTime || rpClient.helpers.now(),
       status: rp_FAILED,
       message: `${err.stack}`,
