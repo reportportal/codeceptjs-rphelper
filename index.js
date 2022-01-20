@@ -288,6 +288,12 @@ module.exports = (config) => {
     }
   });
 
+  event.dispatcher.on('reportportal.result', (result) => {
+    // use result.link as URL to report
+    console.log('Saving Report URL as REPORTPORTAL_URL', result.link);
+    process.env.REPORTPORTAL_URL = result.link; 
+  })
+
   function startLaunch(suiteTitle) {
     rpClient = new RPClient({
       token: config.token,
