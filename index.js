@@ -291,7 +291,8 @@ module.exports = (config) => {
   event.dispatcher.on('reportportal.result', (result) => {
     // use result.link as URL to report
     console.log('Saving Report URL as REPORTPORTAL_URL', result.link);
-    process.env.REPORTPORTAL_URL = result.link; 
+    process.env.REPORTPORTAL_URL = result.link;
+    console.log(process.env.REPORTPORTAL_URL);
   })
 
   function startLaunch(suiteTitle) {
