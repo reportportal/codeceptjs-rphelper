@@ -95,6 +95,7 @@ module.exports = (config) => {
     try {
       const launch = await launchObj.promise;
       fs.writeFileSync(LAUCH_ID_FILE_NAME, launch.id);
+      process.env.RP_LAUNCH_ID = launch.id
 
       debug(`Writing lauch id ${launch.id} to file ${LAUCH_ID_FILE_NAME}`);
       output.debug(`Starting ReportPortal aggregate launch: ${launch.id}`);
