@@ -47,15 +47,15 @@ const defaultConfig = {
   debug: false,
   rerun: undefined,
   enabled: false,
-  selenoidVideoPath: false,
-  selenoidVideoUpload: './output/video'
+  selenoidVideoPath: './output/video',
+  selenoidVideoUpload: false,
 };
 
 const requiredFields = ['projectName', 'token', 'endpoint'];
 
 module.exports = (config) => {
   config = Object.assign(defaultConfig, config);
-  let videoName = helper.config.desiredCapabilities['selenoid:options'].videoName
+  let videoName = helper.config.desiredCapabilities['selenoid:options']?.videoName || 'rp_video.mp'
   if (config.selenoidVideoUpload && !videoName) throw new Error(`No video name defined. Are the selenoid:options.videoName set?`)
 
   
