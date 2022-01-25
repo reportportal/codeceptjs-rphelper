@@ -115,15 +115,16 @@ module.exports = (config) => {
 
   event.dispatcher.on(event.all.before, async () => {
     launchObj = startLaunch();
+    let launchTest;
     try {
-      const launchTest = await launchObj.promise;
+      launchTest = await launchObj.promise;
     } catch (err) {
       output.error("❌ Can't connect to ReportPortal, exiting...");
       output.error(err);
       process.exit(1);
     }
-    output.print(`DEBUG: ${ launchTest }`);
     output.print(`📋 Writing results to ReportPortal: ${config.projectName} > ${config.endpoint}`);
+    process.env.REPORTPORTAL_LAUNCH_UUID = launchTest.id;
 
     const outputLog = output.log;
     const outputDebug = output.debug;
