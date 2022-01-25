@@ -19,6 +19,9 @@ const rp_SUITE = 'SUITE';
 const rp_TEST = 'TEST';
 const rp_STEP = 'STEP';
 
+const RP_DEBUG_MODE = 'DEBUG';
+const RP_DEFAULT_MODE = 'DEFAULT'
+
 const LAUCH_ID_FILE_NAME = 'LAUNCH_ID';
 
 const screenshotHelpers = [
@@ -49,6 +52,7 @@ const defaultConfig = {
   enabled: false,
   selenoidVideoPath: './output/video',
   selenoidVideoUpload: false,
+  debugMode: false
 };
 
 const requiredFields = ['projectName', 'token', 'endpoint'];
@@ -299,6 +303,7 @@ module.exports = (config) => {
       attributes: config.launchAttributes,
       rerun: config.rerun,
       rerunOf: config.rerunOf,
+      mode: (config.debugMode) ? RP_DEBUG_MODE : RP_DEFAULT_MODE
     };
 
     if (rpLaunchId) {
