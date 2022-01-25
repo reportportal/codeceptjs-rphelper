@@ -282,6 +282,8 @@ module.exports = (config) => {
         status: suiteStatus,
       }).promise;
     }
+
+    if (!isControlThread && !fs.existsSync(LAUCH_ID_FILE_NAME)) await finishLaunch()
   });
 
   function startLaunch(suiteTitle) {
