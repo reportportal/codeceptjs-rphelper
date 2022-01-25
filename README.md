@@ -53,6 +53,7 @@ To use this plugin you need to provide the following info:
 * `launchDescription`: (optional) the description of your launch, if not provided, the description will be empty
 * `launchAttributes`: (optional) the attributes of your launch, if not provided, the attributes will be empty
 * `debug`: (optional) to turn on the debug for reportportal
+* `debugMode`: (optional) to run the launch in debug mode. Launch will not be seen in the launch section but in the debug section
 * `rerun`: (optional) to enable [rerun](https://github.com/reportportal/documentation/blob/master/src/md/src/DevGuides/rerun.md)
 * `rerunOf`: (optional) UUID of launch you want to rerun. If not specified, report portal will update the latest launch with the same name.
 * `selenoidVideoUpload`: (optional) Indicates if selenoid video should be uploaded on failed tests. Default: false

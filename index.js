@@ -19,6 +19,9 @@ const rp_SUITE = 'SUITE';
 const rp_TEST = 'TEST';
 const rp_STEP = 'STEP';
 
+const RP_DEBUG_MODE = 'DEBUG';
+const RP_DEFAULT_MODE = 'DEFAULT'
+
 const LAUCH_ID_FILE_NAME = 'LAUNCH_ID';
 
 const screenshotHelpers = [
@@ -48,19 +51,16 @@ const defaultConfig = {
   rerun: undefined,
   enabled: false,
   selenoidVideoPath: './output/video',
-  selenoidVideoUpload: false
+  selenoidVideoUpload: false,
+  debugMode: false
 };
 
 const requiredFields = ['projectName', 'token', 'endpoint'];
 
 module.exports = (config) => {
   config = Object.assign(defaultConfig, config);
-  let videoName = ''
-  if (config.selenoidVideoUpload) {
-    videoName = helper.config.desiredCapabilities['selenoid:options'].videoName
-    if (config.selenoidVideoUpload && !videoName) throw new Error(`No video name defined. Are the selenoid:options.videoName set?`)
-  }
-  
+  let videoName = helper.config.desiredCapabilities['selenoid:options']?.videoName || 'rp_video.mp'
+  if (config.selenoidVideoUpload && !videoName) throw new Error(`No video name defined. Are the selenoid:options.videoName set?`)
 
   
   const rpLaunchId = fs.existsSync(LAUCH_ID_FILE_NAME)
@@ -288,6 +288,8 @@ module.exports = (config) => {
         status: suiteStatus,
       }).promise;
     }
+
+    if (!isControlThread && !fs.existsSync(LAUCH_ID_FILE_NAME)) await finishLaunch()
   });
 
   event.dispatcher.on('reportportal.result', (result) => {
@@ -310,6 +312,7 @@ module.exports = (config) => {
       attributes: config.launchAttributes,
       rerun: config.rerun,
       rerunOf: config.rerunOf,
+      mode: (config.debugMode) ? RP_DEBUG_MODE : RP_DEFAULT_MODE
     };
 
     if (rpLaunchId) {
