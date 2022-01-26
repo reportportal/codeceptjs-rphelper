@@ -59,8 +59,11 @@ const requiredFields = ['projectName', 'token', 'endpoint'];
 
 module.exports = (config) => {
   config = Object.assign(defaultConfig, config);
-  let videoName = helper.config.desiredCapabilities['selenoid:options']?.videoName || 'rp_video.mp'
-  if (config.selenoidVideoUpload && !videoName) throw new Error(`No video name defined. Are the selenoid:options.videoName set?`)
+  let videoName;
+  if (config.selenoidVideoUpload) {
+    videoName = helper.config.desiredCapabilities['selenoid:options']?.videoName
+    if (!videoName) throw new Error(`No video name defined. Are the selenoid:options.videoName set?`)
+  }
 
   
   const rpLaunchId = fs.existsSync(LAUCH_ID_FILE_NAME)
@@ -114,14 +117,16 @@ module.exports = (config) => {
 
   event.dispatcher.on(event.all.before, async () => {
     launchObj = startLaunch();
+    let launchTest;
     try {
-      await launchObj.promise;
+      launchTest = await launchObj.promise;
     } catch (err) {
       output.error("❌ Can't connect to ReportPortal, exiting...");
       output.error(err);
       process.exit(1);
     }
     output.print(`📋 Writing results to ReportPortal: ${config.projectName} > ${config.endpoint}`);
+    process.env.REPORTPORTAL_LAUNCH_UUID = launchTest.id;
 
     const outputLog = output.log;
     const outputDebug = output.debug;
