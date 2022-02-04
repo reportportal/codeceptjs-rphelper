@@ -20,6 +20,9 @@
   },
   "homepage": "https://github.com/reportportal/agent-js-codecept#readme",
   "main": "index.js",
+  "files": [
+    "index.js"
+  ],
   "dependencies": {
     "reportportal-client": "5.5.0",
     "codeceptjs": "^2.3.5"
