@@ -127,6 +127,20 @@ module.exports = (config) => {
     }
     output.print(`📋 Writing results to ReportPortal: ${config.projectName} > ${config.endpoint}`);
     process.env.REPORTPORTAL_LAUNCH_UUID = launchTest.id;
+    exec(
+      `echo "##[set-output name=report_portal_url;]$REPORTPORTAL_LAUNCH_UUID"`,
+      (error, stdout, stderr) => {
+        if (error) {
+          output.print(`error: ${error.message}`);
+          return;
+        }
+        if (stderr) {
+          output.print(`stderr: ${stderr}`);
+          return;
+        }
+        output.print(`stdout: ${stdout}`);
+      }
+    );
 
     const outputLog = output.log;
     const outputDebug = output.debug;
