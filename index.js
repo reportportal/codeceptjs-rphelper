@@ -126,9 +126,10 @@ module.exports = (config) => {
       process.exit(1);
     }
     output.print(`📋 Writing results to ReportPortal: ${config.projectName} > ${config.endpoint}`);
-    process.env.REPORTPORTAL_LAUNCH_UUID = launchTest.id;
+    process.env.REPORTPORTAL_LAUNCH_UUID = 'AAAAAAAAA REPORTPORTAL DEBUG !!!!!!!!!!!!!!!!!!!!!!!!!!!';
+    // process.env.REPORTPORTAL_LAUNCH_UUID = launchTest.id;
     exec(
-      `echo "##[set-output name=report_portal_url;]$REPORTPORTAL_LAUNCH_UUID"`,
+      `echo "##[set-output name=reportportal_launch_uuid;]$REPORTPORTAL_LAUNCH_UUID"`,
       (error, stdout, stderr) => {
         if (error) {
           output.print(`error: ${error.message}`);
