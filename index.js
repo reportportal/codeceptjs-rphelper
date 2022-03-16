@@ -129,7 +129,7 @@ module.exports = (config) => {
     process.env.REPORTPORTAL_LAUNCH_UUID = launchTest.id;
     const saveEnvVar = () => {
       fs = require("fs");
-      fs.writeFile("reportportal.txt", "launchTest.id", function (err) {
+      fs.writeFile("reportportal.txt", launchTest.id, function (err) {
         if (err) return console.log(err);
         console.log("REPORTPORTAL_LAUNCH_UUID > reportportal.txt");
       });
