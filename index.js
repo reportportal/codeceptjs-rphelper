@@ -130,7 +130,7 @@ module.exports = (config) => {
     // process.env.REPORTPORTAL_LAUNCH_UUID = launchTest.id;
     exec(
       // `echo "##[set-output name=reportportal_launch_uuid;]$REPORTPORTAL_LAUNCH_UUID"`,
-      `echo "REPORTPORTAL_LAUNCH_UUID='AAAAAAAAAAA'" >> $GITHUB_ENV`,
+      `"REPORTPORTAL_LAUNCH_UUID=$(echo $GITHUB_SHA | cut -c 1-6)" >> $GITHUB_ENV`,
       (error, stdout, stderr) => {
         if (error) {
           output.print(`error: ${error.message}`);
