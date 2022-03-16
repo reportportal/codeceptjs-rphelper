@@ -4,6 +4,7 @@ const path = require('path');
 const debug = require('debug')('codeceptjs:reportportal');
 const { isMainThread } = require('worker_threads');
 const worker = require('worker_threads');
+const { exec } = require("child_process");
 
 const {
   event, recorder, output, container,
