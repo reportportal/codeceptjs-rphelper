@@ -4,7 +4,6 @@ const path = require('path');
 const debug = require('debug')('codeceptjs:reportportal');
 const { isMainThread } = require('worker_threads');
 const worker = require('worker_threads');
-const { exec } = require("child_process");
 
 const {
   event, recorder, output, container,
@@ -127,23 +126,16 @@ module.exports = (config) => {
       process.exit(1);
     }
     output.print(`📋 Writing results to ReportPortal: ${config.projectName} > ${config.endpoint}`);
-    process.env.REPORTPORTAL_LAUNCH_UUID = 'AAAAAAAAA REPORTPORTAL DEBUG !!!!!!!!!!!!!!!!!!!!!!!!!!!';
-    // process.env.REPORTPORTAL_LAUNCH_UUID = launchTest.id;
-    exec(
-      // `echo "##[set-output name=reportportal_launch_uuid;]$REPORTPORTAL_LAUNCH_UUID"`,
-      `"REPORTPORTAL_LAUNCH_UUID=$(echo $GITHUB_SHA | cut -c 1-6)" >> $GITHUB_ENV`,
-      (error, stdout, stderr) => {
-        if (error) {
-          output.print(`error: ${error.message}`);
-          return;
-        }
-        if (stderr) {
-          output.print(`stderr: ${stderr}`);
-          return;
-        }
-        output.print(`stdout: ${stdout}`);
-      }
-    );
+    process.env.REPORTPORTAL_LAUNCH_UUID = launchTest.id;
+    const saveEnvVar = () => {
+      fs = require("fs");
+      fs.writeFile("reportportal.txt", "launchTest.id", function (err) {
+        if (err) return console.log(err);
+        console.log("REPORTPORTAL_LAUNCH_UUID > reportportal.txt");
+      });
+    };
+
+    saveEnvVar();
 
     const outputLog = output.log;
     const outputDebug = output.debug;
