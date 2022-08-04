@@ -52,7 +52,8 @@ To use this plugin you need to provide the following info:
 - `launchAttributes`: (optional) the attributes of your launch, if not provided, the attributes will be empty
 - `debug`: (optional) to turn on the debug for reportportal
 - `rerun`: (optional) to enable [rerun](https://github.com/reportportal/documentation/blob/master/src/md/src/DevGuides/rerun.md)
-- `rerunOf`: (optional) UUID of launch you want to rerun. If not specified, report portal will update the latest launch with the same name.
+- `rerunOf`: (optional) UUID of launch you want to rerun. If not specified, report portal will update the latest launch with the same name
+- `mode`: (optional) to specify visibility of launch, if set to 'DEBUG', then run results will be only visible in 'Debug' section of the project.
 
 ## Public API
 

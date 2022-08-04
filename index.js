@@ -38,7 +38,8 @@ const defaultConfig = {
   attributes: [],
   debug: false,
   rerun: undefined,
-  enabled: false
+  enabled: false,
+  mode: 'DEFAULT'
 };
 
 const requiredFields = ['projectName', 'token', 'endpoint'];
@@ -250,6 +251,7 @@ module.exports = (config) => {
       attributes: config.launchAttributes,
       rerun: config.rerun,
       rerunOf: config.rerunOf,
+      mode: config.mode,
     }
 
     if (process.env.RP_LAUNCH_ID) { 
