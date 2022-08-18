@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const debug = require('debug')('codeceptjs:reportportal');
 const { event, recorder, output, container } = codeceptjs;
+const deepClone = require('lodash.clonedeep');
 
 const helpers = container.helpers();
 let helper;
@@ -327,7 +328,7 @@ module.exports = (config) => {
       debug(`${metaStep.tempId}: The stepId '${metaStep.toString()}' is started. Nested: ${isNested}`);
     }
 
-    currentMetaSteps = metaSteps;
+    currentMetaSteps = deepClone(metaSteps);
     return currentMetaSteps[currentMetaSteps.length - 1] || testObj;
   }
 

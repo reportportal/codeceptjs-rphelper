@@ -27,11 +27,12 @@
     "test": "mocha test/acceptance_test.js --timeout 6000"
   },
   "devDependencies": {
-    "codeceptjs": "2.5.0",    
     "chai": "^4.2.0",
+    "codeceptjs": "2.5.0",
     "eslint": "^6.6.0",
     "eslint-config-airbnb-base": "^14.0.0",
     "eslint-plugin-import": "^2.18.2",
+    "lodash": "^4.17.21",
     "mocha": "^7.0.1",
     "puppeteer": "^2.1.1"
   }
